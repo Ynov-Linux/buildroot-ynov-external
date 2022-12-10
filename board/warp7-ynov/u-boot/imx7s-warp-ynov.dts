@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) Joris Ofoouga <offougajoris@gmail.com>
+ */
+
+/dts-v1/;
+
+#include "imx7s-warp.dts"
+#include "imx7s-warp-u-boot.dtsi"
+
+/ {
+	leds {
+		u-boot,dm-pre-reloc;
+		compatible = "gpio-leds";
+		system {
+			u-boot,dm-pre-reloc;
+			label = "boot";
+			gpios = <&mcp23008 0 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+	};
+};
+
+&i2c3 {
+	u-boot,dm-pre-reloc;
+
+	mcp23008: mcp23008@20 {
+		compatible = "microchip,mcp23008";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x20>;
+	};
+
+	lm75a@4b {
+		compatible = "national,lm75a";
+		reg = <0x4b>;
+	};
+
+	rtc@6f {
+		compatible = "microchip,mcp7940x";
+		reg = <0x6f>;
+	};
+};
+
+&gpio7 {
+	u-boot,dm-pre-reloc;
+	rst_mikrobus {
+		gpio-hog;
+		gpios = <6 GPIO_ACTIVE_HIGH>;
+		output-high;
+	};
+};

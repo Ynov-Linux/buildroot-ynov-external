@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) Joris Offouga <offougajoris@gmail.com>.
+ */
+
+/dts-v1/;
+
+#include "stm32mp157a-dk1.dts"
+#include "stm32mp157a-dk1-u-boot.dtsi"
+
+/ {
+	leds {
+        u-boot,dm-pre-reloc;
+		compatible = "gpio-leds";
+		led0 {
+			label = "led0";
+			gpios = <&mcp23008 0 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+	};
+};
+
+&gpiog {
+	u-boot,dm-pre-reloc;
+	rst_mikrobus {
+		gpio-hog;
+		gpios = <2 GPIO_ACTIVE_HIGH>;
+		output-high;
+	};
+};
+
+&i2c5 {
+    u-boot,dm-pre-reloc;
+	status = "okay";
+
+	rtc@6f {
+		compatible = "microchip,mcp7941x";
+		reg = <0x6f>;
+	};
+	
+	mcp23008: mcp23008@20 {
+		compatible = "microchip,mcp23008";
+		#gpio-cells = <2>;
+		reg = <0x20>;
+	};
+
+	lm75a@4b {
+		compatible = "nxp,lm75a";
+		reg = <0x4b>;
+		status = "okay";
+	};
+};

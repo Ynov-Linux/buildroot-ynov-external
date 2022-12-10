@@ -1,0 +1,89 @@
+From 9678b28fe376313717729580242c92064632b004 Mon Sep 17 00:00:00 2001
+From: Joris Offouga <offougajoris@gmail.com>
+Date: Sat, 10 Dec 2022 01:02:00 +0100
+Subject: [PATCH 1/2] drivers: thermal: add lm75a
+
+Signed-off-by: Joris Offouga <offougajoris@gmail.com>
+---
+ drivers/thermal/Kconfig  |  6 ++++++
+ drivers/thermal/Makefile |  1 +
+ drivers/thermal/lm75a.c  | 43 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 50 insertions(+)
+ create mode 100644 drivers/thermal/lm75a.c
+
+diff --git a/drivers/thermal/Kconfig b/drivers/thermal/Kconfig
+index 97d4163e8e..b9655d7791 100644
+--- a/drivers/thermal/Kconfig
++++ b/drivers/thermal/Kconfig
+@@ -41,4 +41,10 @@ config TI_DRA7_THERMAL
+ 	 Enable thermal support for for the Texas Instruments DRA752 SoC family.
+ 	 The driver supports reading CPU temperature.
+ 
++config LM75A_THERMAL
++        bool "Temperature sensor driver for LM75A"
++		depends on DM_I2C
++        help
++	 Enable thermal support for LM75A.
++
+ endif # if DM_THERMAL
+diff --git a/drivers/thermal/Makefile b/drivers/thermal/Makefile
+index 15fe847d9f..681d48d998 100644
+--- a/drivers/thermal/Makefile
++++ b/drivers/thermal/Makefile
+@@ -8,3 +8,4 @@ obj-$(CONFIG_IMX_THERMAL) += imx_thermal.o
+ obj-$(CONFIG_IMX_SCU_THERMAL) += imx_scu_thermal.o
+ obj-$(CONFIG_TI_DRA7_THERMAL) += ti-bandgap.o
+ obj-$(CONFIG_IMX_TMU) += imx_tmu.o
++obj-$(CONFIG_LM75A_THERMAL) += lm75a.o
+diff --git a/drivers/thermal/lm75a.c b/drivers/thermal/lm75a.c
+new file mode 100644
+index 0000000000..6c064e4f4e
+--- /dev/null
++++ b/drivers/thermal/lm75a.c
+@@ -0,0 +1,43 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++/*
++ * Copyright (c) 2022 Joris Offouga <offougajoris@gmail.com>
++ *
++ * LM75A driver for the thermal uclass.
++ */
++
++#include <common.h>
++#include <dm.h>
++#include <i2c.h>
++#include <thermal.h>
++
++#define LM75A_REG_TEMP 0x00
++
++static int lm75a_get_temp(struct udevice *dev, int *temp)
++{
++	int ret;
++
++	ret = dm_i2c_reg_read(dev, LM75A_REG_TEMP);
++	if (!ret) {
++		printf("%s: Can't read LM75A_REG_TEMP\n", __func__);
++		return ret;
++	}
++
++	*temp = ret;
++	return 0;
++}
++
++static struct dm_thermal_ops lm75a_thermal_ops = {
++	.get_temp	= lm75a_get_temp,
++};
++static const struct udevice_id lm75a_ids[] = {
++	{ .compatible = "national,lm75a" },
++	{ .compatible = "nxp,lm75a" },
++	{}
++};
++
++U_BOOT_DRIVER(lm75a) = {
++	.name = "lm75a",
++	.id = UCLASS_THERMAL,
++	.ops	= &lm75a_thermal_ops,
++	.of_match = lm75a_ids,
++};
+-- 
+2.34.1
+

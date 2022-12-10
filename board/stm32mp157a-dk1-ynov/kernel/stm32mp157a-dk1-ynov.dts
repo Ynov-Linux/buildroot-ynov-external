@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
+/*
+ * Copyright (C) Joris Offouga <offougajoris@gmail.com>.
+ */
+
+/dts-v1/;
+
+#include "stm32mp157a-dk1.dts"
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+		led0 {
+			label = "led0";
+			gpios = <&mcp23008 0 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "heartbeat";
+			default-state = "keep";
+		};
+	};
+    clocks {
+            /* 8MHz external crystal oscillator */
+            clk8m: mcp251x_osc {
+                    #clock-cells = <0>;
+                    compatible = "fixed-clock";
+                    clock-frequency = <8000000>;
+            };
+    };
+};
+
+&i2c5 {
+	status = "okay";
+		rtc@6f {
+			compatible = "microchip,mcp7941x";
+			reg = <0x6f>;
+		};
+		
+		mcp23008: mcp23008@20 {
+			compatible = "microchip,mcp23008";
+			#gpio-cells = <2>;
+			reg = <0x20>;
+		};
+
+		lm75a@4b {
+			compatible = "national,lm75a";
+			reg = <0x4b>;
+		};
+
+		pcf8591@48 {
+			compatible = "nxp,pcf8591";
+			reg = <0x48>;
+		};
+};
+
+&spi5 {
+    pinctrl-names = "default", "sleep";
+    pinctrl-0 = <&spi5_pins_mx>;
+    pinctrl-1 = <&spi5_sleep_pins_mx>;
+    status = "okay";
+    cs-gpios = <&gpiof 6 GPIO_ACTIVE_LOW>;
+    can0: can@0 {
+        compatible = "microchip,mcp2515";
+        reg = <0>;
+        clocks = <&clk8m>;
+        spi-max-frequency = <2000000>;
+		interrupt-parent=<&gpiog>;
+		interrupts = <2 IRQ_TYPE_EDGE_FALLING>;
+        status = "okay";
+    };
+};
+
+&pinctrl {
+    spi5_pins_mx: spi5_mx-0 {
+        pins {
+            pinmux = <STM32_PINMUX('F', 7, AF5)>, /* SPI5_SCK */
+                     <STM32_PINMUX('F', 8, AF5)>, /* SPI5_MISO */
+                     <STM32_PINMUX('F', 9, AF5)>; /* SPI5_MOSI */
+            bias-disable;
+            drive-push-pull;
+            slew-rate = <1>;
+        };
+    };
+    spi5_sleep_pins_mx: spi5_sleep_mx-0 {
+        pins {
+            pinmux = <STM32_PINMUX('F', 7, ANALOG)>, /* SPI5_SCK */
+                     <STM32_PINMUX('F', 8, ANALOG)>, /* SPI5_MISO */
+                     <STM32_PINMUX('F', 9, ANALOG)>; /* SPI5_MOSI */
+        };
+    };
+};

@@ -1,0 +1,115 @@
+From d25af7fcda2d46ea2c0f6e0bc2a68ba208780b29 Mon Sep 17 00:00:00 2001
+From: Joris Offouga <offougajoris@gmail.com>
+Date: Sat, 10 Dec 2022 01:13:39 +0100
+Subject: [PATCH 2/2] add reset gpio to mikrobus for MCP23008 for WaRP7 and
+ STM32MP1
+
+Also add print temperature with LM75A sensor
+
+Signed-off-by: Joris Offouga <offougajoris@gmail.com>
+---
+ board/st/stm32mp1/stm32mp1.c | 20 +++++++++++++++++++-
+ board/warp7/warp7.c          | 27 +++++++++++++++++++++++++++
+ 2 files changed, 46 insertions(+), 1 deletion(-)
+
+diff --git a/board/st/stm32mp1/stm32mp1.c b/board/st/stm32mp1/stm32mp1.c
+index 8c162b42a5..121c65a8b3 100644
+--- a/board/st/stm32mp1/stm32mp1.c
++++ b/board/st/stm32mp1/stm32mp1.c
+@@ -46,6 +46,7 @@
+ #include <linux/iopoll.h>
+ #include <power/regulator.h>
+ #include <usb/dwc2_udc.h>
++#include <thermal.h>
+ 
+ #include "../../st/common/stusb160x.h"
+ 
+@@ -89,7 +90,14 @@
+ 
+ int board_early_init_f(void)
+ {
+-	/* nothing to do, only used in SPL */
++	struct gpio_desc *desc;
++	int ret;
++
++	ret = gpio_hog_lookup_name("rst_mikrobus", &desc);
++	if (!ret)
++	{
++		dm_gpio_set_value(desc, 1);
++	}
+ 	return 0;
+ }
+ 
+@@ -716,6 +724,16 @@ int board_late_init(void)
+ 	/* for DK1/DK2 boards */
+ 	board_check_usb_power();
+ 
++	struct udevice *thermal_dev;
++	int temp;
++
++	ret = uclass_get_device(UCLASS_THERMAL, 0, &thermal_dev);
++	if(!ret) {
++		ret = thermal_get_temp(thermal_dev, &temp);
++		if(!ret){
++			log_info("LM75A: Temperature at %dC\n", temp);
++		}
++	}
+ 	return 0;
+ }
+ 
+diff --git a/board/warp7/warp7.c b/board/warp7/warp7.c
+index ead52d5a49..e8fd7e2975 100644
+--- a/board/warp7/warp7.c
++++ b/board/warp7/warp7.c
+@@ -18,15 +18,31 @@
+ #include <common.h>
+ #include <env.h>
+ #include <asm/arch/crm_regs.h>
++#include <led.h>
+ #include <netdev.h>
+ #include <power/pmic.h>
+ #include <power/pfuze3000_pmic.h>
+ #include "../freescale/common/pfuze.h"
+ #include <asm/setup.h>
+ #include <asm/bootm.h>
++#include <dm.h>
++#include <thermal.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++int board_early_init_f(void)
++{
++	struct gpio_desc *desc;
++	int ret;
++
++	ret = gpio_hog_lookup_name("rst_mikrobus", &desc);
++	if (!ret)
++	{
++		dm_gpio_set_value(desc, 1);
++	}
++	return 0;
++}
++
+ int dram_init(void)
+ {
+ 	gd->ram_size = PHYS_SDRAM_SIZE;
+@@ -131,5 +147,16 @@ int board_late_init(void)
+ 	env_set("serial#", serial_string);
+ #endif
+ 
++	struct udevice *thermal_dev;
++	int ret, temp;
++
++	ret = uclass_get_device(UCLASS_THERMAL, 1, &thermal_dev);
++	if(!ret){
++		ret = thermal_get_temp(thermal_dev, &temp);
++		if(!ret){
++			printf("LM75A: Temperature at %dC\n", temp);
++		}
++	}
++
+ 	return 0;
+ }
+-- 
+2.34.1
+
